@@ -14,6 +14,7 @@
 import os
 import sys
 
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -24,6 +25,7 @@ parent = os.path.dirname(cwd)
 sys.path.append(parent)
 
 import assert_element
+
 
 # -- General configuration -----------------------------------------------------
 

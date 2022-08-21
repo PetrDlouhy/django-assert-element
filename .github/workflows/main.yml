@@ -62,7 +62,5 @@ jobs:
         run: python -m isort . --check-only --diff
       - name: Running black
         run: black --check .
-      - name: Running black
-        run: black --check .
       - name: Running mypy
         run: mypy .
