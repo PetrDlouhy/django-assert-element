@@ -6,6 +6,7 @@ codecov>=2.0.0
 isort
 mypy
 black
+django-stubs
 -r requirements.txt
 
 
