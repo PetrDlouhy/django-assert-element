@@ -16,8 +16,7 @@ def run_tests(*test_args):
 
     os.environ["DJANGO_SETTINGS_MODULE"] = "tests.settings"
     django.setup()
-    TestRunner = get_runner(settings)
-    test_runner = TestRunner()
+    test_runner = get_runner(settings)()
     failures = test_runner.run_tests(test_args)
     sys.exit(bool(failures))
 

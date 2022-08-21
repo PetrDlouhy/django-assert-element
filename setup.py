@@ -48,7 +48,10 @@ requirements = open("requirements.txt").readlines()
 setup(
     name="assert_element",
     version=version,
-    description="""Simple TestCase assertion that finds element based on it's path and check if it equals with given content.""",
+    description=(
+        "Simple TestCase assertion that finds element based on it's path "
+        "and check if it equals with given content."
+    ),
     long_description=readme + "\n\n" + history,
     author="Petr Dlouhý",
     author_email="petr.dlouhy@email.cz",
