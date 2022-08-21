@@ -10,6 +10,10 @@ Django assert element
 
 Simple TestCase assertion that finds element based on it's path and check if it equals with given content.
 
+This is more useful than the default Django AssertContains
+because it will find the element and show differences if something changed.
+The test also tries to ignore differences in whitespaces as much as possible.
+
 Documentation
 -------------
 
