@@ -30,7 +30,7 @@ Usage in tests:
             self.assertElementContains(
                 response,
                 'div[id="my-div"]',
-                '<div>My div</div>',
+                '<div id="my-div">My div</div>',
             )
 
 Running Tests

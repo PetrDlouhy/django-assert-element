@@ -1,2 +1,2 @@
-
-import * from .assert_element
+__version__ = "0.1.0"
+from .assert_element import AssertElementMixin
