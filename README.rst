@@ -8,6 +8,9 @@ Django assert element
 .. image:: https://codecov.io/gh/PetrDlouhy/assert_element/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/PetrDlouhy/assert_element
 
+.. image:: https://github.com/PetrDlouhy/django-assert-element/actions/workflows/main.yml/badge.svg?event=registry_package
+    :target: https://github.com/PetrDlouhy/django-assert-element/actions/workflows/main.yml
+
 Simple TestCase assertion that finds element based on it's path and check if it equals with given content.
 
 This is more useful than the default Django AssertContains
