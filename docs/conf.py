@@ -49,8 +49,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"Django assert element"
-copyright = u"2022, Petr Dlouhý"
+project = "Django assert element"
+copyright = "2022, Petr Dlouhý"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -196,8 +196,8 @@ latex_documents = [
     (
         "index",
         "assert_element.tex",
-        u"Django assert element Documentation",
-        u"Petr Dlouhý",
+        "Django assert element Documentation",
+        "Petr Dlouhý",
         "manual",
     ),
 ]
@@ -231,8 +231,8 @@ man_pages = [
     (
         "index",
         "assert_element",
-        u"Django assert element Documentation",
-        [u"Petr Dlouhý"],
+        "Django assert element Documentation",
+        ["Petr Dlouhý"],
         1,
     )
 ]
@@ -250,8 +250,8 @@ texinfo_documents = [
     (
         "index",
         "assert_element",
-        u"Django assert element Documentation",
-        u"Petr Dlouhý",
+        "Django assert element Documentation",
+        "Petr Dlouhý",
         "assert_element",
         "One line description of project.",
         "Miscellaneous",
