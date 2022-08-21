@@ -56,7 +56,7 @@ setup(
     long_description=readme + "\n\n" + history,
     author="Petr Dlouhý",
     author_email="petr.dlouhy@email.cz",
-    url="https://github.com/PetrDlouhy/assert_element",
+    url="https://github.com/PetrDlouhy/django-assert-element",
     packages=[
         "assert_element",
     ],
