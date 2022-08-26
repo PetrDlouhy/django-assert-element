@@ -26,8 +26,6 @@ I released this package just to realize after few days, that there are some othe
 * https://django-with-asserts.readthedocs.io/en/latest/
 * https://github.com/robjohncox/python-html-assert
 
-Especialy Django-with-asserts does look more versatile, although not maintained.
-
 Documentation
 -------------
 
@@ -35,6 +33,12 @@ The full documentation is at https://assert_element.readthedocs.io.
 
 Quickstart
 ----------
+
+Install by:
+
+.. code-block:: bash
+    
+    pip install assert-element
 
 Usage in tests:
 
