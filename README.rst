@@ -17,6 +17,17 @@ This is more useful than the default Django AssertContains
 because it will find the element and show differences if something changed.
 The test also tries to ignore differences in whitespaces as much as possible.
 
+Other similar projects
+----------------------
+
+I released this package just to realize after few days, that there are some other very similar projects:
+
+* https://pypi.org/project/django_html_assertions/
+* https://django-with-asserts.readthedocs.io/en/latest/
+* https://github.com/robjohncox/python-html-assert
+
+Especialy Django-with-asserts does look more versatile, although not maintained.
+
 Documentation
 -------------
 
