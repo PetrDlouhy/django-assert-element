@@ -55,6 +55,10 @@ Usage in tests:
                 '<div id="my-div">My div</div>',
             )
 
+The first attribute can be response or content itself.
+Second attribute is the path to the element.
+Third attribute is the expected content.
+
 Running Tests
 -------------
 
