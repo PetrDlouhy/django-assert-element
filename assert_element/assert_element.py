@@ -10,7 +10,8 @@ class AssertElementMixin:
         html_element="",
         element_text="",
     ):
-        soup = bs.BeautifulSoup(request.content, "html.parser")
+        content = request.content if hasattr(request, "content") else request
+        soup = bs.BeautifulSoup(content, "html.parser")
         element = soup.select(html_element)
         if len(element) == 0:
             raise Exception(f"No element found: {html_element}")
