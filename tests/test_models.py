@@ -21,3 +21,38 @@ class MyTestCase(AssertElementMixin, TestCase):
             "title",
             "<title>Not Found</title>",
         )
+
+    def test_spaces_dont_matter(self):
+        """Test that sanitization works on blank spaces"""
+        response = self.client.get("admin")
+        self.assertElementContains(
+            response,
+            "title",
+            "<title>Not \r\n\t      Found</title>",
+        )
+
+    def test_direct_content(self):
+        """Test that first attribute can be directly content"""
+        self.assertElementContains(
+            "<title>Not  Found</title>",
+            "title",
+            "<title>Not Found</title>",
+        )
+
+    def test_element_not_found(self):
+        """Element not found raises Exception"""
+        with self.assertRaisesRegex(Exception, "No element found: title"):
+            self.assertElementContains(
+                "",
+                "title",
+                "<title>Not Found</title>",
+            )
+
+    def test_multiple_elements_found(self):
+        """Multiple elements found are raising Exception"""
+        with self.assertRaisesRegex(Exception, "More than one element found: title"):
+            self.assertElementContains(
+                "<title>Not Found</title><title>Not Found</title>",
+                "title",
+                "<title>Not Found</title>",
+            )
