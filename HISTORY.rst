@@ -3,6 +3,11 @@
 History
 -------
 
+0.3.0 (2022-09-16)
+++++++++++++++++++
+
+* more tolerance in whitespace differences
+
 0.2.0 (2022-09-01)
 ++++++++++++++++++
 
