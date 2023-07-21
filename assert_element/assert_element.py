@@ -1,11 +1,41 @@
+import html.parser
 import re
 
 import bs4 as bs
 
 
+class MyHTMLFormatter(html.parser.HTMLParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result = []
+
+    def handle_starttag(self, tag, attrs):
+        self.result.append(f"<{tag}")
+        for attr in attrs:
+            self.result.append(f' {attr[0]}="{attr[1]}"')
+        self.result.append(">")
+
+    def handle_endtag(self, tag):
+        self.result.append(f"</{tag}>")
+
+    def handle_data(self, data):
+        self.result.append(data)
+
+    def prettify(self):
+        return "\n".join(self.result)
+
+
+def pretty_print_html(html_str):
+    """Pretty print HTML string"""
+    formatter = MyHTMLFormatter()
+    formatter.feed(html_str)
+    return formatter.prettify()
+
+
 def sanitize_html(html_str):
     """Sanitize HTML string"""
-    return re.sub(r"[\n\r \t]+", " ", html_str).strip()
+    sanitized = re.sub(r"[\n\r \t]+", " ", html_str).strip()
+    return pretty_print_html(sanitized)
 
 
 class AssertElementMixin:

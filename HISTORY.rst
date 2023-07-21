@@ -3,6 +3,11 @@
 History
 -------
 
+0.4.0 (2023-07-21)
+++++++++++++++++++
+
+* more readable output when assertion fails
+
 0.3.0 (2022-09-16)
 ++++++++++++++++++
 
