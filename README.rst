@@ -13,7 +13,7 @@ Django assert element
 
 Simple TestCase assertion that finds element based on it's path and check if it equals with given content.
 
-This is more useful than the default Django `self.assertContains()`
+This is more useful than the default Django `self.assertContains(response, ..., html=True)`
 because it will find the element and show differences if something changed.
 The test also tries to ignore differences in whitespaces as much as possible.
 
@@ -55,9 +55,35 @@ Usage in tests:
                 '<div id="my-div">My div</div>',
             )
 
-The first attribute can be response or content itself.
-Second attribute is the path to the element.
+The first attribute can be response or content string.
+Second attribute is the xpath to the element.
 Third attribute is the expected content.
+
+
+If response = `<html><div id="my-div">Myy div</div></html>` the error output of the `assertContains` looks like this:
+
+.. code-block:: console
+
+    ======================================================================
+    FAIL: test_element_differs (tests.test_models.MyTestCase.test_element_differs)
+    Element not found raises Exception
+    ----------------------------------------------------------------------
+    Traceback (most recent call last):
+      File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/tests/test_models.py", line 53, in test_element_differs
+        self.assertElementContains(
+      File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/assert_element/assert_element.py", line 58, in assertElementContains
+        self.assertEqual(element_txt, soup_1_txt)
+    AssertionError: '<div\n id="my-div"\n>\n Myy div \n</div>' != '<div\n id="my-div"\n>\n My div \n</div>'
+      <div
+       id="my-div"
+      >
+    -  Myy div 
+    ?    -
+    +  My div 
+      </div>
+
+which is much cleaner than the original django `assertContains()` output.
+
 
 Running Tests
 -------------
