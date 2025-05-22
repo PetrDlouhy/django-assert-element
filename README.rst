@@ -11,7 +11,8 @@ Django assert element
 .. image:: https://github.com/PetrDlouhy/django-assert-element/actions/workflows/main.yml/badge.svg?event=registry_package
     :target: https://github.com/PetrDlouhy/django-assert-element/actions/workflows/main.yml
 
-Simple TestCase assertion that finds element based on it's path and check if it equals with given content.
+Simple ``TestCase`` assertion that finds element based on it's xpath and check if it equals with given content.
+In case the content is not matching it outputs nice and clean diff of the two compared HTML pieces.
 
 This is more useful than the default Django ``self.assertContains(response, ..., html=True)``
 because it will find the element and show differences if something changed.
