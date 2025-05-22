@@ -13,7 +13,7 @@ Django assert element
 
 Simple TestCase assertion that finds element based on it's path and check if it equals with given content.
 
-This is more useful than the default Django `self.assertContains(response, ..., html=True)`
+This is more useful than the default Django ``self.assertContains(response, ..., html=True)``
 because it will find the element and show differences if something changed.
 The test also tries to ignore differences in whitespaces as much as possible.
 
@@ -82,7 +82,7 @@ If response = `<html><div id="my-div">Myy div</div></html>` the error output of 
     +  My div 
       </div>
 
-which is much cleaner than the original django `assertContains()` output.
+which is much cleaner than the original django ``assertContains()`` output.
 
 
 Running Tests
