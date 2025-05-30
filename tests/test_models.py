@@ -48,6 +48,18 @@ class MyTestCase(AssertElementMixin, TestCase):
                 "<title>Not Found</title>",
             )
 
+    def test_element_differs(self):
+        """Element content differs, assertRaisesRegex with detailed diff."""
+
+        expected_message_regex = "-  Myy div \n\\?    - *\n\\+  My div"
+
+        with self.assertRaisesRegex(AssertionError, expected_message_regex):
+            self.assertElementContains(
+                '<html><div id="my-div">Myy div</div></html>',
+                'div[id="my-div"]',
+                '<div id="my-div">My div</div>',
+            )
+
     def test_multiple_elements_found(self):
         """Multiple elements found are raising Exception"""
         with self.assertRaisesRegex(Exception, "More than one element found: title"):
