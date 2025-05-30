@@ -19,21 +19,61 @@ jobs:
   tests:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-        
+
     strategy:
       matrix:
-        DJANGO_VERSION: [ '4.0.*', '4.1.*']
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        DJANGO_VERSION: ['4.0.*', '4.1.*', '4.2.*', '5.0.*', '5.1.*', '5.2.*']
+        exclude:
+          # Django 4.0 incompatibilities
+          - python-version: '3.11'
+            DJANGO_VERSION: '4.0.*'
+          - python-version: '3.12'
+            DJANGO_VERSION: '4.0.*'
+          - python-version: '3.13'
+            DJANGO_VERSION: '4.0.*'
+
+          # Django 4.1 incompatibilities
+          - python-version: '3.12'
+            DJANGO_VERSION: '4.1.*'
+          - python-version: '3.13'
+            DJANGO_VERSION: '4.1.*'
+
+          # Django 4.2 incompatibilities
+          - python-version: '3.13'
+            DJANGO_VERSION: '4.2.*'
+
+          # Django 5.0 incompatibilities
+          - python-version: '3.8'
+            DJANGO_VERSION: '5.0.*'
+          - python-version: '3.9'
+            DJANGO_VERSION: '5.0.*'
+          - python-version: '3.13'
+            DJANGO_VERSION: '5.0.*'
+
+          # Django 5.1 incompatibilities
+          - python-version: '3.8'
+            DJANGO_VERSION: '5.1.*'
+          - python-version: '3.9'
+            DJANGO_VERSION: '5.1.*'
+          - python-version: '3.13'
+            DJANGO_VERSION: '5.1.*'
+
+          # Django 5.2 incompatibilities
+          - python-version: '3.8'
+            DJANGO_VERSION: '5.2.*'
+          - python-version: '3.9'
+            DJANGO_VERSION: '5.2.*'
       fail-fast: false
 
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
               python-version: ${{ matrix.python-version }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ hashFiles('setup.py') }}-${{ hashFiles('demoproject/requirements.txt') }}-${{ hashFiles('requirements.txt') }}-${{ matrix.DJANGO_VERSION }}
@@ -41,14 +81,12 @@ jobs:
       - name: Install
         run: |
            pip install -e .
-           pip install --upgrade --upgrade-strategy eager -r requirements_test.txt
-           pip install Django==${{ matrix.DJANGO_VERSION }}
-           pip install codecov
+           pip install tox codecov
 
       - name: Testing
         run: |
-          python -W error::DeprecationWarning -m coverage run manage.py test
-          coverage xml && codecov
+          tox -e py$(echo ${{ matrix.python-version }} | sed 's/\.//g')-django$(echo ${{ matrix.DJANGO_VERSION }} | cut -d'.' -f1-2 | sed 's/\.//g')
+          codecov
   lint:
     runs-on: ubuntu-latest
     steps:
