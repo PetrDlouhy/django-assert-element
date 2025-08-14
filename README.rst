@@ -16,7 +16,20 @@ In case the content is not matching it outputs nice and clean diff of the two co
 
 This is more useful than the default Django ``self.assertContains(response, ..., html=True)``
 because it will find the element and show differences if something changed.
-The test also tries to ignore differences in whitespaces as much as possible.
+
+Whitespace Normalization
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The library uses aggressive whitespace normalization to focus on HTML semantic meaning
+rather than cosmetic formatting differences:
+
+* **Normalizes cosmetic differences**: Multiple spaces, tabs, newlines, and attribute spacing
+* **Handles structural variations**: Self-closing vs explicit tags (``<br/>`` vs ``<br></br>``)
+* **Preserves semantic meaning**: Only fails when HTML content actually differs in meaning
+* **Browser-consistent**: Mimics how browsers treat whitespace (collapsed to single spaces)
+
+This prevents false positive test failures caused by insignificant whitespace variations
+while still catching genuine HTML content differences.
 
 Other similar projects
 ----------------------
@@ -60,8 +73,7 @@ The first attribute can be response or content string.
 Second attribute is the xpath to the element.
 Third attribute is the expected content.
 
-
-If response = `<html><div id="my-div">Myy div</div></html>` the error output of the `assertContains` looks like this:
+**Error Output Example**: If response = `<html><div id="my-div">Myy div</div></html>` the error output of the `assertElementContains` looks like this:
 
 .. code-block:: console
 
@@ -85,6 +97,15 @@ If response = `<html><div id="my-div">Myy div</div></html>` the error output of 
 
 which is much cleaner than the original django ``assertContains()`` output.
 
+**Whitespace Example**: These assertions would pass because the differences are cosmetic:
+
+.. code-block:: python
+
+    # These are all equivalent due to whitespace normalization:
+    self.assertElementContains(response, 'p', '<p>hello world</p>')
+    self.assertElementContains(response, 'p', '<p>hello   world</p>')  # Multiple spaces
+    self.assertElementContains(response, 'p', '<p>hello\tworld</p>')   # Tab
+    self.assertElementContains(response, 'p', '<p>\n  hello world  \n</p>')  # Newlines
 
 Running Tests
 -------------

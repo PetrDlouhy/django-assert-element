@@ -33,9 +33,29 @@ def pretty_print_html(html_str):
 
 
 def sanitize_html(html_str):
-    """Sanitize HTML string"""
-    sanitized = re.sub(r"[\n\r \t]+", " ", html_str).strip()
-    return pretty_print_html(sanitized)
+    """
+    Sanitize HTML string for reliable comparison.
+
+    Aggressively normalizes cosmetic whitespace differences (multiple spaces,
+    tabs, newlines, attribute spacing) while preserving semantically meaningful
+    structural differences. Focuses on HTML meaning rather than formatting.
+    """
+    # First, handle self-closing vs explicit closing tag normalization
+    # Use BeautifulSoup for structural normalization
+    soup = bs.BeautifulSoup(html_str, "html.parser")
+    structure_normalized = str(soup)
+
+    # Apply aggressive whitespace normalization for cosmetic differences
+    # Most whitespace variations are cosmetic and should be normalized
+
+    # Normalize line endings
+    normalized = structure_normalized.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Use the original aggressive approach but be smarter about it
+    # Collapse all consecutive whitespace to single spaces, as browsers do
+    collapsed = re.sub(r"[\n\r \t]+", " ", normalized)
+
+    return pretty_print_html(collapsed.strip())
 
 
 class AssertElementMixin:
