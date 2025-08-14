@@ -3,6 +3,13 @@
 History
 -------
 
+0.5.0 (TBD)
+++++++++++++++++++
+
+* improved whitespace sanitization with aggressive normalization
+* enhanced test coverage for semantically meaningful whitespace differences
+* updated documentation with detailed whitespace normalization behavior
+
 0.4.0 (2023-07-21)
 ++++++++++++++++++
 
