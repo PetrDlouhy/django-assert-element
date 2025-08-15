@@ -3,7 +3,7 @@
 History
 -------
 
-0.5.0 (TBD)
+0.5.0 (2025-08-15)
 ++++++++++++++++++
 
 * improved whitespace sanitization with aggressive normalization
