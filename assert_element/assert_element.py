@@ -3,6 +3,32 @@ import re
 
 import bs4 as bs
 
+BOOLEAN_ATTRIBUTES = {
+    "allowfullscreen",
+    "async",
+    "autofocus",
+    "autoplay",
+    "checked",
+    "controls",
+    "default",
+    "defer",
+    "disabled",
+    "formnovalidate",
+    "hidden",
+    "ismap",
+    "itemscope",
+    "loop",
+    "multiple",
+    "muted",
+    "nomodule",
+    "novalidate",
+    "open",
+    "playsinline",
+    "readonly",
+    "required",
+    "reversed",
+    "selected",
+}
 
 class MyHTMLFormatter(html.parser.HTMLParser):
     def __init__(self, *args, **kwargs):
@@ -12,7 +38,10 @@ class MyHTMLFormatter(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         self.result.append(f"<{tag}")
         for attr in attrs:
-            self.result.append(f' {attr[0]}="{attr[1]}"')
+            if attr[1] is None:
+                self.result.append(f" {attr[0]}")
+            else:
+                self.result.append(f' {attr[0]}="{attr[1]}"')
         self.result.append(">")
 
     def handle_endtag(self, tag):
@@ -43,6 +72,10 @@ def sanitize_html(html_str):
     # First, handle self-closing vs explicit closing tag normalization
     # Use BeautifulSoup for structural normalization
     soup = bs.BeautifulSoup(html_str, "html.parser")
+    for tag in soup.find_all(True):
+        for attr in list(tag.attrs):
+            if attr in BOOLEAN_ATTRIBUTES:
+                tag[attr] = None
     structure_normalized = str(soup)
 
     # Apply aggressive whitespace normalization for cosmetic differences
