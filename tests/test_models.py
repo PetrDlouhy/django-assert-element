@@ -269,6 +269,19 @@ class SanitizeHtmlTests(TestCase):
                         f"Attribute whitespace preserved: {repr(html1)} != {repr(html2)}"
                     )
 
+    def test_boolean_attribute_normalization(self):
+        """Boolean attributes should normalize consistently."""
+        variants = [
+            "<input disabled>",
+            '<input disabled="">',
+            '<input disabled="disabled">',
+        ]
+
+        sanitized = {self.sanitize_html(html) for html in variants}
+
+        # All representations should collapse to a single canonical form
+        self.assertEqual(len(sanitized), 1, sanitized)
+
     def test_semantically_meaningful_whitespace_differences(self):
         """
         Test cases where whitespace differences actually matter for HTML semantics.
