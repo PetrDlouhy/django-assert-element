@@ -76,19 +76,20 @@ def sanitize_html(html_str):
         for attr in list(tag.attrs):
             if attr in BOOLEAN_ATTRIBUTES:
                 tag[attr] = None
-    structure_normalized = str(soup)
 
-    # Apply aggressive whitespace normalization for cosmetic differences
-    # Most whitespace variations are cosmetic and should be normalized
+    # Collapse standard whitespace in text nodes but leave attribute values and
+    # non-breaking spaces untouched so their semantics are preserved
+    for text in soup.find_all(string=True):
+        collapsed = re.sub(r"[ \t\r\n]+", " ", text)
+        text.replace_with(collapsed)
+
+    structure_normalized = str(soup)
 
     # Normalize line endings
     normalized = structure_normalized.replace("\r\n", "\n").replace("\r", "\n")
 
-    # Use the original aggressive approach but be smarter about it
-    # Collapse all consecutive whitespace to single spaces, as browsers do
-    collapsed = re.sub(r"[\n\r \t]+", " ", normalized)
-
-    return pretty_print_html(collapsed.strip())
+    # Return canonical HTML with cosmetic whitespace normalized
+    return pretty_print_html(normalized.strip())
 
 
 class AssertElementMixin:
