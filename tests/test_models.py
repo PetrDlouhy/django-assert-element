@@ -282,6 +282,30 @@ class SanitizeHtmlTests(TestCase):
         # All representations should collapse to a single canonical form
         self.assertEqual(len(sanitized), 1, sanitized)
 
+    def test_self_closing_tag_normalization(self):
+        """Self-closing tags should retain their form after sanitization."""
+        cases = [
+            [
+                '<img src="file.jpg">',
+                '<img src="file.jpg"/>',
+            ],
+            [
+                "<br>",
+                "<br/>",
+            ],
+            [
+                '<input type="text">',
+                '<input type="text"/>',
+            ],
+        ]
+
+        for variants in cases:
+            with self.subTest(variants=variants):
+                sanitized = {self.sanitize_html(html) for html in variants}
+                self.assertEqual(len(sanitized), 1, sanitized)
+                canonical = sanitized.pop()
+                self.assertTrue(canonical.strip().endswith("/>"), canonical)
+
     def test_semantically_meaningful_whitespace_differences(self):
         """
         Test cases where whitespace differences actually matter for HTML semantics.
