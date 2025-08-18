@@ -3,6 +3,7 @@ import re
 
 import bs4 as bs
 
+
 BOOLEAN_ATTRIBUTES = {
     "allowfullscreen",
     "async",
@@ -30,6 +31,7 @@ BOOLEAN_ATTRIBUTES = {
     "selected",
 }
 
+
 class MyHTMLFormatter(html.parser.HTMLParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,11 +40,20 @@ class MyHTMLFormatter(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         self.result.append(f"<{tag}")
         for attr in attrs:
-            if attr[1] is None:
+            if attr[1] in (None, True):
                 self.result.append(f" {attr[0]}")
             else:
                 self.result.append(f' {attr[0]}="{attr[1]}"')
         self.result.append(">")
+
+    def handle_startendtag(self, tag, attrs):
+        self.result.append(f"<{tag}")
+        for attr in attrs:
+            if attr[1] in (None, True):
+                self.result.append(f" {attr[0]}")
+            else:
+                self.result.append(f' {attr[0]}="{attr[1]}"')
+        self.result.append("/>")
 
     def handle_endtag(self, tag):
         self.result.append(f"</{tag}>")
