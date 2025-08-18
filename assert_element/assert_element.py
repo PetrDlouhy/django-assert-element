@@ -4,6 +4,34 @@ import re
 import bs4 as bs
 
 
+BOOLEAN_ATTRIBUTES = {
+    "allowfullscreen",
+    "async",
+    "autofocus",
+    "autoplay",
+    "checked",
+    "controls",
+    "default",
+    "defer",
+    "disabled",
+    "formnovalidate",
+    "hidden",
+    "ismap",
+    "itemscope",
+    "loop",
+    "multiple",
+    "muted",
+    "nomodule",
+    "novalidate",
+    "open",
+    "playsinline",
+    "readonly",
+    "required",
+    "reversed",
+    "selected",
+}
+
+
 class MyHTMLFormatter(html.parser.HTMLParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -12,8 +40,20 @@ class MyHTMLFormatter(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         self.result.append(f"<{tag}")
         for attr in attrs:
-            self.result.append(f' {attr[0]}="{attr[1]}"')
+            if attr[1] in (None, True):
+                self.result.append(f" {attr[0]}")
+            else:
+                self.result.append(f' {attr[0]}="{attr[1]}"')
         self.result.append(">")
+
+    def handle_startendtag(self, tag, attrs):
+        self.result.append(f"<{tag}")
+        for attr in attrs:
+            if attr[1] in (None, True):
+                self.result.append(f" {attr[0]}")
+            else:
+                self.result.append(f' {attr[0]}="{attr[1]}"')
+        self.result.append("/>")
 
     def handle_endtag(self, tag):
         self.result.append(f"</{tag}>")
@@ -43,19 +83,24 @@ def sanitize_html(html_str):
     # First, handle self-closing vs explicit closing tag normalization
     # Use BeautifulSoup for structural normalization
     soup = bs.BeautifulSoup(html_str, "html.parser")
-    structure_normalized = str(soup)
+    for tag in soup.find_all(True):
+        for attr in list(tag.attrs):
+            if attr in BOOLEAN_ATTRIBUTES:
+                tag[attr] = None
 
-    # Apply aggressive whitespace normalization for cosmetic differences
-    # Most whitespace variations are cosmetic and should be normalized
+    # Collapse standard whitespace in text nodes but leave attribute values and
+    # non-breaking spaces untouched so their semantics are preserved
+    for text in soup.find_all(string=True):
+        collapsed = re.sub(r"[ \t\r\n]+", " ", text)
+        text.replace_with(collapsed)
+
+    structure_normalized = str(soup)
 
     # Normalize line endings
     normalized = structure_normalized.replace("\r\n", "\n").replace("\r", "\n")
 
-    # Use the original aggressive approach but be smarter about it
-    # Collapse all consecutive whitespace to single spaces, as browsers do
-    collapsed = re.sub(r"[\n\r \t]+", " ", normalized)
-
-    return pretty_print_html(collapsed.strip())
+    # Return canonical HTML with cosmetic whitespace normalized
+    return pretty_print_html(normalized.strip())
 
 
 class AssertElementMixin:
