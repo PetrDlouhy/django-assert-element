@@ -63,17 +63,22 @@ Usage in tests:
     class MyTestCase(AssertElementMixin, TestCase):
         def test_something(self):
             response = self.client.get(address)
-            self.assertElementContains(
+            self.assertElementHTML(
                 response,
                 'div[id="my-div"]',
                 '<div id="my-div">My div</div>',
             )
+            self.assertElementContainsHTML(
+                response,
+                'div[id="my-div"]',
+                '<span>My</span>',
+            )
 
 The first attribute can be response or content string.
 Second attribute is the xpath to the element.
-Third attribute is the expected content.
+Third attribute is the expected HTML content.
 
-**Error Output Example**: If response = `<html><div id="my-div">Myy div</div></html>` the error output of the `assertElementContains` looks like this:
+**Error Output Example**: If response = `<html><div id="my-div">Myy div</div></html>` the error output of the `assertElementHTML` looks like this:
 
 .. code-block:: console
 
@@ -83,8 +88,8 @@ Third attribute is the expected content.
     ----------------------------------------------------------------------
     Traceback (most recent call last):
       File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/tests/test_models.py", line 53, in test_element_differs
-        self.assertElementContains(
-      File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/assert_element/assert_element.py", line 58, in assertElementContains
+        self.assertElementHTML(
+      File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/assert_element/assert_element.py", line 58, in assertElementHTML
         self.assertEqual(element_txt, soup_1_txt)
     AssertionError: '<div\n id="my-div"\n>\n Myy div \n</div>' != '<div\n id="my-div"\n>\n My div \n</div>'
       <div
@@ -102,10 +107,17 @@ which is much cleaner than the original django ``assertContains()`` output.
 .. code-block:: python
 
     # These are all equivalent due to whitespace normalization:
-    self.assertElementContains(response, 'p', '<p>hello world</p>')
-    self.assertElementContains(response, 'p', '<p>hello   world</p>')  # Multiple spaces
-    self.assertElementContains(response, 'p', '<p>hello\tworld</p>')   # Tab
-    self.assertElementContains(response, 'p', '<p>\n  hello world  \n</p>')  # Newlines
+    self.assertElementHTML(response, 'p', '<p>hello world</p>')
+    self.assertElementHTML(response, 'p', '<p>hello   world</p>')  # Multiple spaces
+    self.assertElementHTML(response, 'p', '<p>hello\tworld</p>')   # Tab
+    self.assertElementHTML(response, 'p', '<p>\n  hello world  \n</p>')  # Newlines
+
+To check that an element's HTML includes a fragment after sanitization, use::
+
+    self.assertElementContainsHTML(response, 'div', '<span>hello</span>')
+
+The old ``assertElementContains`` name is preserved for backwards compatibility
+but will be removed in a future release.
 
 Running Tests
 -------------
