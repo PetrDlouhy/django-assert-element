@@ -5,9 +5,11 @@
 Tests for assert_element package.
 
 This module contains comprehensive tests for the assert_element functionality,
-including integration tests for assertElementContains and detailed analysis
+including integration tests for assertElementHTML and detailed analysis
 of HTML whitespace sanitization behavior.
 """
+
+import warnings
 
 from django.test import TestCase
 
@@ -18,7 +20,7 @@ from assert_element.assert_element import sanitize_html
 class AssertElementIntegrationTests(AssertElementMixin, TestCase):
     def test_something(self):
         response = self.client.get("admin")
-        self.assertElementContains(
+        self.assertElementHTML(
             response,
             "title",
             "<title>Not Found</title>",
@@ -27,7 +29,7 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
     def test_spaces_dont_matter(self):
         """Test that sanitization works on blank spaces"""
         response = self.client.get("admin")
-        self.assertElementContains(
+        self.assertElementHTML(
             response,
             "title",
             "<title>Not \r\n\t      Found</title>",
@@ -35,7 +37,7 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
 
     def test_direct_content(self):
         """Test that first attribute can be directly content"""
-        self.assertElementContains(
+        self.assertElementHTML(
             "<title>Not  Found</title>",
             "title",
             "<title>Not Found</title>",
@@ -44,7 +46,7 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
     def test_element_not_found(self):
         """Element not found raises Exception"""
         with self.assertRaisesRegex(Exception, "No element found: title"):
-            self.assertElementContains(
+            self.assertElementHTML(
                 "",
                 "title",
                 "<title>Not Found</title>",
@@ -56,7 +58,7 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
         expected_message_regex = "-  Myy div \n\\?    - *\n\\+  My div"
 
         with self.assertRaisesRegex(AssertionError, expected_message_regex):
-            self.assertElementContains(
+            self.assertElementHTML(
                 '<html><div id="my-div">Myy div</div></html>',
                 'div[id="my-div"]',
                 '<div id="my-div">My div</div>',
@@ -67,11 +69,32 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
         with self.assertRaisesRegex(
             Exception, r"More than one element found \(\d+\): title"
         ):
-            self.assertElementContains(
+            self.assertElementHTML(
                 "<title>Not Found</title><title>Not Found</title>",
                 "title",
                 "<title>Not Found</title>",
             )
+
+    def test_contains_html(self):
+        """Element HTML contains expected fragment"""
+        self.assertElementContainsHTML(
+            '<div id="greeting"><span>Hello</span> world</div>',
+            'div[id="greeting"]',
+            '<span> Hello </span>',
+        )
+
+    def test_deprecated_alias_still_works(self):
+        """assertElementContains triggers DeprecationWarning and works"""
+        response = self.client.get("admin")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.assertElementContains(
+                response,
+                "title",
+                "<title>Not Found</title>",
+            )
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, DeprecationWarning))
 
 
 class SanitizeHtmlTests(TestCase):
@@ -79,7 +102,7 @@ class SanitizeHtmlTests(TestCase):
     Tests for sanitize_html function behavior.
 
     The sanitize_html function normalizes HTML whitespace to enable reliable
-    HTML comparisons in assertElementContains. However, overly aggressive
+    HTML comparisons in assertElementHTML. However, overly aggressive
     normalization can cause false positives where genuinely different HTML
     is treated as identical.
 
@@ -196,7 +219,7 @@ class SanitizeHtmlTests(TestCase):
             0,
             f"Found {len(issues_found)} critical whitespace normalization issues that need fixing:\n"
             f"{issue_details if issues_found else ''}\n\n"
-            f"These issues can cause assertElementContains to incorrectly pass when HTML differs.",
+            f"These issues can cause assertElementHTML to incorrectly pass when HTML differs.",
         )
 
     def test_sanitization_edge_cases(self):

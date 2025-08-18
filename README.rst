@@ -17,7 +17,7 @@ In case the content is not matching it outputs nice and clean diff of the two co
 This is more useful than the default Django ``self.assertContains(response, ..., html=True)``
 because it will find the element and show differences if something changed.
 
-Why Use assertElementContains?
+Why Use assertElementHTML?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Primary Benefits:**
@@ -36,7 +36,7 @@ Why Use assertElementContains?
     self.assertIn("Company Dashboard", response.content.decode())
 
     # ✅ GOOD - Shows only the relevant element (clean, focused)
-    self.assertElementContains(response, "h1", "<h1>Company Dashboard</h1>")
+    self.assertElementHTML(response, "h1", "<h1>Company Dashboard</h1>")
 
 Whitespace Normalization
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,27 +60,34 @@ then collapses whitespace to single spaces (as browsers do), making tests resili
 .. code-block:: python
 
     # All of these work - whitespace is normalized automatically:
-    self.assertElementContains(response, 'p', '<p>hello world</p>')
-    self.assertElementContains(response, 'p', '<p>hello   world</p>')  # Multiple spaces
-    self.assertElementContains(response, 'p', '<p>hello\tworld</p>')   # Tab
-    self.assertElementContains(response, 'p', '<p>\n  hello world  \n</p>')  # Newlines
+    self.assertElementHTML(response, 'p', '<p>hello world</p>')
+    self.assertElementHTML(response, 'p', '<p>hello   world</p>')  # Multiple spaces
+    self.assertElementHTML(response, 'p', '<p>hello\tworld</p>')   # Tab
+    self.assertElementHTML(response, 'p', '<p>\n  hello world  \n</p>')  # Newlines
+
+To check that an element's HTML includes a fragment after sanitization, use::
+
+    self.assertElementContainsHTML(response, 'div', '<span>hello</span>')
+
+The old ``assertElementHTML`` name is preserved for backwards compatibility
+but will be removed in a future release.
 
 Complete Element Matching
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Critical:** ``assertElementContains`` does **exact element matching**, not content checking.
+**Critical:** ``assertElementHTML`` does **exact element matching**, not content checking.
 You must include the element's own tags in the expected string.
 
 .. code-block:: python
 
     # Given: <button class="submit-btn">Save</button>
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         'button.submit-btn',
         '<button class="submit-btn">Save</button>'
     )  # ✓ Correct
 
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         'button.submit-btn',
         'Save'
@@ -94,17 +101,17 @@ Use CSS selectors (not XPath) to target elements:
 .. code-block:: python
 
     # ✅ Good - CSS selectors
-    self.assertElementContains(response, '#page-title', '<h1 id="page-title">Dashboard</h1>')
-    self.assertElementContains(response, '.invoice-number', '<span class="invoice-number">123</span>')
-    self.assertElementContains(response, 'button.submit-btn', '<button class="submit-btn">Save</button>')
+    self.assertElementHTML(response, '#page-title', '<h1 id="page-title">Dashboard</h1>')
+    self.assertElementHTML(response, '.invoice-number', '<span class="invoice-number">123</span>')
+    self.assertElementHTML(response, 'button.submit-btn', '<button class="submit-btn">Save</button>')
 
     # ❌ Bad - XPath not supported
-    # self.assertElementContains(response, '//div[@class="invoice"]', ...)  # Won't work
+    # self.assertElementHTML(response, '//div[@class="invoice"]', ...)  # Won't work
 
 Single Element Requirement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The CSS selector must match exactly one element. If multiple elements match, ``assertElementContains``
+The CSS selector must match exactly one element. If multiple elements match, ``assertElementHTML``
 will raise an exception with details about all matching elements.
 
 **Error when multiple elements found:**
@@ -133,7 +140,7 @@ Add semantic classes or IDs to your templates to make selectors unique:
 .. code-block:: python
 
     # Test
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         '.empty-state-message',
         '<div class="empty-state-message">No team members yet.</div>'
@@ -153,7 +160,7 @@ When you need to target a specific element in a list:
 .. code-block:: python
 
     # Target first row in a table
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         'tbody tr:nth-child(1) .invoice-number',
         '<span class="invoice-number">1/FV/12/2025</span>'
@@ -167,7 +174,7 @@ Combine selectors to narrow down to a unique element:
 .. code-block:: python
 
     # Instead of just '.member-email', use:
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         '.business-plan-members .member-email',
         '<span class="member-email">user@example.com</span>'
@@ -193,7 +200,7 @@ Extract dynamic values from models, don't hardcode:
 
         # Build expected HTML with dynamic values from the model
         expected = f'<span class="invoice-number">{invoice.full_number}</span>'
-        self.assertElementContains(response, '.invoice-number', expected)
+        self.assertElementHTML(response, '.invoice-number', expected)
 
 Testing Form Errors
 -------------------
@@ -201,7 +208,7 @@ Testing Form Errors
 .. code-block:: python
 
     # Template has: <div class="invalid-feedback d-block email-field-error">...</div>
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         '.email-field-error',
         '<div class="invalid-feedback d-block email-field-error">',
@@ -212,7 +219,7 @@ Testing Empty States
 
 .. code-block:: python
 
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         '.empty-state-message',
         '<p class="text-muted empty-state-message">No team members yet.</p>'
@@ -223,7 +230,7 @@ Testing Modal Content
 
 .. code-block:: python
 
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         '.upgrade-plan-id',
         f'<input type="hidden" name="plan_id" value="{plan.id}" class="upgrade-plan-id">'
@@ -277,17 +284,22 @@ Usage in tests:
     class MyTestCase(AssertElementMixin, TestCase):
         def test_something(self):
             response = self.client.get(address)
-            self.assertElementContains(
+            self.assertElementHTML(
                 response,
                 'div[id="my-div"]',
                 '<div id="my-div">My div</div>',
+            )
+            self.assertElementContainsHTML(
+                response,
+                'div[id="my-div"]',
+                '<span>My</span>',
             )
 
 The first attribute can be response or content string.
 Second attribute is the CSS selector to the element.
 Third attribute is the expected content.
 
-**Error Output Example**: If response = ``<html><div id="my-div">Myy div</div></html>`` the error output of the ``assertElementContains`` looks like this:
+**Error Output Example**: If response = ``<html><div id="my-div">Myy div</div></html>`` the error output of the ``assertElementHTML`` looks like this:
 
 .. code-block:: console
 
@@ -297,8 +309,8 @@ Third attribute is the expected content.
     ----------------------------------------------------------------------
     Traceback (most recent call last):
       File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/tests/test_models.py", line 53, in test_element_differs
-        self.assertElementContains(
-      File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/assert_element/assert_element.py", line 58, in assertElementContains
+        self.assertElementHTML(
+      File "/home/petr/soubory/programovani/blenderkit/django-assert-element/assert_element/assert_element/assert_element.py", line 58, in assertElementHTML
         self.assertEqual(element_txt, soup_1_txt)
     AssertionError: '<div\n id="my-div"\n>\n Myy div \n</div>' != '<div\n id="my-div"\n>\n My div \n</div>'
       <div
@@ -314,7 +326,7 @@ which is much cleaner than the original django ``assertContains()`` output.
 API Reference
 ~~~~~~~~~~~~~
 
-``assertElementContains(request, html_element, element_text)``
+``assertElementHTML(request, html_element, element_text)``
 --------------------------------------------------------------
 
 **Parameters:**
@@ -331,7 +343,7 @@ API Reference
 
 .. code-block:: python
 
-    self.assertElementContains(
+    self.assertElementHTML(
         response,
         'h1#page-title',
         '<h1 id="page-title">Dashboard</h1>'
@@ -352,6 +364,7 @@ The normalization process:
 * Collapses consecutive whitespace to single spaces
 * Normalizes line endings
 * Preserves semantic structure while ignoring cosmetic formatting
+
 
 Running Tests
 -------------
