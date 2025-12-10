@@ -6,9 +6,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ '**' ]
+    branches: ["**"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -22,57 +22,58 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-        DJANGO_VERSION: ['4.0.*', '4.1.*', '4.2.*', '5.0.*', '5.1.*', '5.2.*']
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        DJANGO_VERSION: ["4.0.*", "4.1.*", "4.2.*", "5.0.*", "5.1.*", "5.2.*"]
         exclude:
           # Django 4.0 incompatibilities
-          - python-version: '3.11'
-            DJANGO_VERSION: '4.0.*'
-          - python-version: '3.12'
-            DJANGO_VERSION: '4.0.*'
-          - python-version: '3.13'
-            DJANGO_VERSION: '4.0.*'
+          - python-version: "3.11"
+            DJANGO_VERSION: "4.0.*"
+          - python-version: "3.12"
+            DJANGO_VERSION: "4.0.*"
+          - python-version: "3.13"
+            DJANGO_VERSION: "4.0.*"
 
           # Django 4.1 incompatibilities
-          - python-version: '3.12'
-            DJANGO_VERSION: '4.1.*'
-          - python-version: '3.13'
-            DJANGO_VERSION: '4.1.*'
+          - python-version: "3.12"
+            DJANGO_VERSION: "4.1.*"
+          - python-version: "3.13"
+            DJANGO_VERSION: "4.1.*"
 
           # Django 4.2 incompatibilities
-          - python-version: '3.13'
-            DJANGO_VERSION: '4.2.*'
+          - python-version: "3.13"
+            DJANGO_VERSION: "4.2.*"
 
           # Django 5.0 incompatibilities
-          - python-version: '3.8'
-            DJANGO_VERSION: '5.0.*'
-          - python-version: '3.9'
-            DJANGO_VERSION: '5.0.*'
-          - python-version: '3.13'
-            DJANGO_VERSION: '5.0.*'
+          - python-version: "3.8"
+            DJANGO_VERSION: "5.0.*"
+          - python-version: "3.9"
+            DJANGO_VERSION: "5.0.*"
+          - python-version: "3.13"
+            DJANGO_VERSION: "5.0.*"
 
           # Django 5.1 incompatibilities
-          - python-version: '3.8'
-            DJANGO_VERSION: '5.1.*'
-          - python-version: '3.9'
-            DJANGO_VERSION: '5.1.*'
-          - python-version: '3.13'
-            DJANGO_VERSION: '5.1.*'
+          - python-version: "3.8"
+            DJANGO_VERSION: "5.1.*"
+          - python-version: "3.9"
+            DJANGO_VERSION: "5.1.*"
+          - python-version: "3.13"
+            DJANGO_VERSION: "5.1.*"
 
           # Django 5.2 incompatibilities
-          - python-version: '3.8'
-            DJANGO_VERSION: '5.2.*'
-          - python-version: '3.9'
-            DJANGO_VERSION: '5.2.*'
+          - python-version: "3.8"
+            DJANGO_VERSION: "5.2.*"
+          - python-version: "3.9"
+            DJANGO_VERSION: "5.2.*"
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-              python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
+
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -80,25 +81,31 @@ jobs:
 
       - name: Install
         run: |
-           pip install -e .
-           pip install tox codecov
+          pip install -e .
+          pip install tox codecov
 
       - name: Testing
         run: |
-          tox -e py$(echo ${{ matrix.python-version }} | sed 's/\.//g')-django$(echo ${{ matrix.DJANGO_VERSION }} | cut -d'.' -f1-2 | sed 's/\.//g')
+          tox -e py$(echo ${{ matrix.python-version }} | sed "s/\.//g")-django$(echo ${{ matrix.DJANGO_VERSION }} | cut -d"." -f1-2 | sed "s/\.//g")
           codecov
+
   lint:
+    name: Pre-commit checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
         run: |
-          pip install -r requirements_test.txt
-      - name: Running Flake8
-        run: flake8
-      - name: Running isort
-        run: python -m isort . --check-only --diff
-      - name: Running black
-        run: black --check .
-      - name: Running mypy
-        run: mypy .
+          pip install pre-commit
+
+      - name: Run pre-commit checks
+        run: |
+          # Run all pre-commit hooks (includes black, isort, flake8, etc.)
+          # Skip no-commit-to-branch (not relevant in CI)
+          SKIP=no-commit-to-branch pre-commit run --all-files
