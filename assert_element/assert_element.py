@@ -79,7 +79,8 @@ class AssertElementMixin:
                 elements_preview.append(f"... and {len(element) - 5} more")
             raise Exception(
                 f"More than one element found ({len(element)}): {html_element}\n"
-                f"Found elements:\n" + "\n".join(f"  {i+1}. {e}" for i, e in enumerate(elements_preview))
+                f"Found elements:\n"
+                + "\n".join(f"  {i+1}. {e}" for i, e in enumerate(elements_preview))
             )
         soup_1 = bs.BeautifulSoup(element_text, "html.parser")
         element_txt = sanitize_html(element[0].prettify())
