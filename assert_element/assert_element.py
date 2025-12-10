@@ -71,7 +71,16 @@ class AssertElementMixin:
         if len(element) == 0:
             raise Exception(f"No element found: {html_element}")
         if len(element) > 1:
-            raise Exception(f"More than one element found: {html_element}")
+            elements_preview = []
+            for elem in element[:5]:
+                elem_str = " ".join(str(elem).split())[:100]
+                elements_preview.append(elem_str)
+            if len(element) > 5:
+                elements_preview.append(f"... and {len(element) - 5} more")
+            raise Exception(
+                f"More than one element found ({len(element)}): {html_element}\n"
+                f"Found elements:\n" + "\n".join(f"  {i+1}. {e}" for i, e in enumerate(elements_preview))
+            )
         soup_1 = bs.BeautifulSoup(element_text, "html.parser")
         element_txt = sanitize_html(element[0].prettify())
         soup_1_txt = sanitize_html(soup_1.prettify())
