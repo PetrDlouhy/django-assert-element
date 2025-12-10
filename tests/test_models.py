@@ -64,7 +64,9 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
 
     def test_multiple_elements_found(self):
         """Multiple elements found are raising Exception"""
-        with self.assertRaisesRegex(Exception, "More than one element found: title"):
+        with self.assertRaisesRegex(
+            Exception, r"More than one element found \(\d+\): title"
+        ):
             self.assertElementContains(
                 "<title>Not Found</title><title>Not Found</title>",
                 "title",
