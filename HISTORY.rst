@@ -3,6 +3,15 @@
 History
 -------
 
+0.6.0 (2025-12-11)
+++++++++++++++++++
+
+* added element preview in error messages for easier debugging
+* improved HTML formatting with proper self-closing tag handling
+* normalized boolean attribute handling for consistent comparisons
+* added pre-commit configuration for unified CI checks
+* enhanced README with comprehensive examples and documentation
+
 0.5.0 (2025-08-15)
 ++++++++++++++++++
 
