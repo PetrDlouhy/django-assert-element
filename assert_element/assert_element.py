@@ -87,6 +87,17 @@ def sanitize_html(html_str):
         for attr in list(tag.attrs):
             if attr in BOOLEAN_ATTRIBUTES:
                 tag[attr] = None
+            else:
+                # Normalize whitespace in attribute values
+                # Collapse multiple spaces/tabs/newlines to single space
+                # and strip leading/trailing whitespace
+                value = tag[attr]
+                if isinstance(value, str):
+                    normalized_value = re.sub(r"\s+", " ", value).strip()
+                    tag[attr] = normalized_value
+                elif isinstance(value, list):
+                    # Handle attributes that can have multiple values (like class)
+                    tag[attr] = [re.sub(r"\s+", " ", v).strip() for v in value]
 
     # Collapse standard whitespace in text nodes but leave attribute values and
     # non-breaking spaces untouched so their semantics are preserved
@@ -125,7 +136,7 @@ class AssertElementMixin:
             raise Exception(
                 f"More than one element found ({len(element)}): {html_element}\n"
                 f"Found elements:\n"
-                + "\n".join(f"  {i+1}. {e}" for i, e in enumerate(elements_preview))
+                + "\n".join(f"  {i + 1}. {e}" for i, e in enumerate(elements_preview))
             )
         soup_1 = bs.BeautifulSoup(element_text, "html.parser")
         element_txt = sanitize_html(element[0].prettify())

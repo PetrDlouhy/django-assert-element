@@ -3,6 +3,14 @@
 History
 -------
 
+0.6.1 (2025-12-18)
+++++++++++++++++++
+
+* fixed whitespace normalization in attribute values (regression fix)
+* attribute values now properly normalize multi-line formatting to single line
+* improved tolerance for cosmetic whitespace differences in srcset, style, and other attributes
+* added comprehensive test coverage for real-world HTML formatting variations
+
 0.6.0 (2025-12-11)
 ++++++++++++++++++
 
