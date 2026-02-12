@@ -27,6 +27,9 @@ pip-log.txt
 .tox
 nosetests.xml
 htmlcov
+coverage.xml
+.pytest_cache/
+.mypy_cache/
 
 # Translations
 *.mo
@@ -45,3 +48,19 @@ output/*/index.html
 
 # Sphinx
 docs/_build
+
+# Editor backups and swap files
+*.orig
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Databases
+*.sqlite3
+db.sqlite3

@@ -268,6 +268,12 @@ Install by:
 
     pip install assert-element
 
+With optional strict validation support:
+
+.. code-block:: bash
+
+    pip install assert-element[strict]
+
 Usage in tests:
 
 .. code-block:: python
@@ -314,18 +320,26 @@ which is much cleaner than the original django ``assertContains()`` output.
 API Reference
 ~~~~~~~~~~~~~
 
-``assertElementContains(request, html_element, element_text)``
---------------------------------------------------------------
+``assertElementContains(request, html_element, element_text, html=None)``
+--------------------------------------------------------------------------
 
 **Parameters:**
 
 * ``request`` - Django response object or HTML string
 * ``html_element`` - CSS selector string (e.g., ``'#id'``, ``'.class'``, ``'button.submit-btn'``)
 * ``element_text`` - Expected full element HTML string (must include element's own tags)
+* ``html`` - HTML validation mode (optional):
+
+  * ``None`` (default): Use class attribute ``assert_element_html_mode``
+  * ``True``: Standard validation (Django's parse_html)
+  * ``'strict'``: Strict HTML5 validation (requires html5lib)
+  * ``False``: No validation
 
 **Raises:**
 
-* ``Exception`` - If no element found, multiple elements found, or element doesn't match
+* ``Exception`` - If no element found or multiple elements found
+* ``AssertionError`` - If element doesn't match or HTML validation fails
+* ``ImportError`` - If ``html='strict'`` but html5lib is not installed
 
 **Example:**
 
@@ -336,6 +350,91 @@ API Reference
         'h1#page-title',
         '<h1 id="page-title">Dashboard</h1>'
     )
+
+HTML Validation Modes
+~~~~~~~~~~~~~~~~~~~~~~
+
+``assertElementContains`` supports three HTML validation modes to balance strictness with practicality.
+
+**Standard Mode (Default)**
+
+.. code-block:: python
+
+    # Default - catches major structural errors
+    self.assertElementContains(response, 'div', '<div>...</div>')
+
+    # Explicit
+    self.assertElementContains(response, 'div', '<div>...</div>', html=True)
+
+Uses Django's HTML parser (same as ``assertContains``). Catches structural errors like wrong closing tags, but allows browser-like auto-closing of tags.
+
+**Strict Mode (Optional)**
+
+.. code-block:: python
+
+    # Requires: pip install assert-element[strict]
+    self.assertElementContains(response, 'div', '<div>...</div>', html='strict')
+
+Uses html5lib for strict HTML5 validation according to WHATWG specification. Requires html5lib package to be installed.
+
+**No Validation**
+
+.. code-block:: python
+
+    self.assertElementContains(response, 'div', '<div>...</div>', html=False)
+
+Skips HTML validation entirely. Useful for testing HTML fragments or intentionally malformed HTML.
+
+**Setting Project-Wide Defaults**
+
+Set validation mode for all assertions in a test class:
+
+.. code-block:: python
+
+    from assert_element import AssertElementMixin
+    from django.test import TestCase
+
+    class MyTests(AssertElementMixin, TestCase):
+        assert_element_html_mode = 'strict'  # All assertions use strict
+
+        def test_something(self):
+            # Uses strict validation (class default)
+            self.assertElementContains(response, 'div', '<div>...</div>')
+
+            # Override for specific assertion
+            self.assertElementContains(response, 'p', '<p>...</p>', html=True)
+
+**Convenience Class for Strict Validation**
+
+.. code-block:: python
+
+    from assert_element import StrictAssertElementMixin
+    from django.test import TestCase
+
+    class MyTests(StrictAssertElementMixin, TestCase):
+        # All assertions use strict validation by default
+
+        def test_something(self):
+            self.assertElementContains(response, 'div', '<div>...</div>')
+
+**Creating Project-Wide Base Class**
+
+.. code-block:: python
+
+    # your_project/tests/base.py
+    from assert_element import StrictAssertElementMixin
+    from django.test import TestCase
+
+    class BaseTestCase(StrictAssertElementMixin, TestCase):
+        """Base test case with strict HTML validation."""
+        pass
+
+    # In test files:
+    from your_project.tests.base import BaseTestCase
+
+    class MyTests(BaseTestCase):
+        # Inherits strict validation from base class
+        pass
 
 How It Works
 ~~~~~~~~~~~~

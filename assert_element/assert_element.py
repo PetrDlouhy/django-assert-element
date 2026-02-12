@@ -2,6 +2,19 @@ import html.parser
 import re
 
 import bs4 as bs
+from django.test.html import HTMLParseError, parse_html
+
+
+# Optional html5lib support for strict validation
+try:
+    import html5lib
+    from html5lib.html5parser import ParseError as HTML5ParseError
+
+    HAS_HTML5LIB = True
+except ImportError:
+    html5lib = None
+    HTML5ParseError = None
+    HAS_HTML5LIB = False
 
 
 BOOLEAN_ATTRIBUTES = {
@@ -115,13 +128,47 @@ def sanitize_html(html_str):
 
 
 class AssertElementMixin:
+    # Default HTML validation mode for all assertions in this test class
+    # Can be overridden in subclasses or per-test
+    assert_element_html_mode = True
+
     def assertElementContains(  # noqa
         self,
         request,
         html_element="",
         element_text="",
+        html=None,
     ):
+        """
+        Assert that an element contains expected HTML content.
+
+        Args:
+            request: Django response object or HTML string
+            html_element: CSS selector for the element to find
+            element_text: Expected HTML content
+            html: HTML validation mode (defaults to class attribute assert_element_html_mode):
+                - True: Standard validation (Django's parse_html, forgiving like browsers)
+                - 'strict': Strict HTML5 validation using html5lib (requires html5lib package)
+                - False: No validation
+                - None: Use class attribute assert_element_html_mode (default)
+
+        Raises:
+            ImportError: If html='strict' but html5lib is not installed
+            AssertionError: If HTML validation fails or content doesn't match
+        """
         content = request.content if hasattr(request, "content") else request
+
+        # Use class default if not explicitly specified
+        if html is None:
+            html = self.assert_element_html_mode
+
+        # Validate HTML correctness based on mode
+        if html == "strict":
+            self._validate_html_strict(content)
+        elif html:
+            self._validate_html_standard(content)
+        # else: no validation
+
         soup = bs.BeautifulSoup(content, "html.parser")
         element = soup.select(html_element)
         if len(element) == 0:
@@ -135,10 +182,66 @@ class AssertElementMixin:
                 elements_preview.append(f"... and {len(element) - 5} more")
             raise Exception(
                 f"More than one element found ({len(element)}): {html_element}\n"
-                f"Found elements:\n"
-                + "\n".join(f"  {i + 1}. {e}" for i, e in enumerate(elements_preview))
+                f"Found elements:\n" + "\n".join(f"  {i + 1}. {e}" for i, e in enumerate(elements_preview))
             )
         soup_1 = bs.BeautifulSoup(element_text, "html.parser")
         element_txt = sanitize_html(element[0].prettify())
         soup_1_txt = sanitize_html(soup_1.prettify())
         self.assertEqual(element_txt, soup_1_txt)
+
+    def _validate_html_standard(self, content):
+        """Standard HTML validation using Django's parse_html (browser-like)."""
+        content_str = content.decode() if isinstance(content, bytes) else content
+        try:
+            parse_html(content_str)
+        except HTMLParseError as e:
+            self.fail(f"Response content is not valid HTML: {e}")
+
+    def _validate_html_strict(self, content):
+        """
+        Strict HTML5 validation using html5lib.
+
+        Raises ImportError if html5lib is not installed.
+        """
+        if not HAS_HTML5LIB:
+            raise ImportError(
+                "html='strict' requires html5lib package. "
+                "Install it with: pip install html5lib\n"
+                "Or use html=True for standard validation."
+            )
+
+        content_str = content.decode() if isinstance(content, bytes) else content
+        content_stripped = content_str.strip()
+
+        # Ensure DOCTYPE for html5lib (only add if not present)
+        if not content_stripped.startswith("<!DOCTYPE") and not content_stripped.upper().startswith("<!DOCTYPE"):
+            content_str = "<!DOCTYPE html>" + content_str
+
+        parser = html5lib.HTMLParser(strict=True)
+        try:
+            parser.parse(content_str)
+        except HTML5ParseError as e:
+            self.fail(f"Response content failed strict HTML5 validation: {e}")
+
+
+class StrictAssertElementMixin(AssertElementMixin):
+    """
+    Convenience mixin that uses strict HTML5 validation by default.
+
+    Equivalent to setting assert_element_html_mode = 'strict' on your test class.
+    Requires html5lib to be installed: pip install html5lib
+
+    Example:
+        from assert_element import StrictAssertElementMixin
+        from django.test import TestCase
+
+        class MyTests(StrictAssertElementMixin, TestCase):
+            def test_something(self):
+                # Uses strict validation by default
+                self.assertElementContains(response, 'div', '<div>...</div>')
+
+                # Can still override per-assertion
+                self.assertElementContains(response, 'p', '<p>...</p>', html=True)
+    """
+
+    assert_element_html_mode = "strict"
