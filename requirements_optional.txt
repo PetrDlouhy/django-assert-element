@@ -1,0 +1,5 @@
+# Optional dependencies for additional features
+
+# Strict HTML5 validation (for html='strict' mode)
+# Install with: pip install assert-element[strict]
+html5lib>=1.1

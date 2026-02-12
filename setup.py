@@ -50,8 +50,7 @@ setup(
     name="assert_element",
     version=version,
     description=(
-        "Simple TestCase assertion that finds element based on it's path "
-        "and check if it equals with given content."
+        "Simple TestCase assertion that finds element based on it's path " "and check if it equals with given content."
     ),
     long_description=readme + "\n\n" + history,
     author="Petr Dlouhý",
@@ -62,6 +61,9 @@ setup(
     ],
     include_package_data=True,
     install_requires=requirements,
+    extras_require={
+        "strict": ["html5lib>=1.1"],
+    },
     license="MIT",
     zip_safe=False,
     keywords="assert_element",

@@ -9,9 +9,11 @@ including integration tests for assertElementContains and detailed analysis
 of HTML whitespace sanitization behavior.
 """
 
+import unittest
+
 from django.test import TestCase
 
-from assert_element import AssertElementMixin
+from assert_element import HAS_HTML5LIB, AssertElementMixin, StrictAssertElementMixin
 from assert_element.assert_element import sanitize_html
 
 
@@ -64,14 +66,105 @@ class AssertElementIntegrationTests(AssertElementMixin, TestCase):
 
     def test_multiple_elements_found(self):
         """Multiple elements found are raising Exception"""
-        with self.assertRaisesRegex(
-            Exception, r"More than one element found \(\d+\): title"
-        ):
+        with self.assertRaisesRegex(Exception, r"More than one element found \(\d+\): title"):
             self.assertElementContains(
                 "<title>Not Found</title><title>Not Found</title>",
                 "title",
                 "<title>Not Found</title>",
             )
+
+    def test_html_validation_with_wrong_closing_tag(self):
+        """
+        Invalid HTML with wrong closing tag should fail when html=True.
+
+        Django's parse_html catches structural errors like mismatched closing tags,
+        similar to assertContains(html=True).
+        """
+        invalid_html = "<html><body><div>Test</span></div></body></html>"
+
+        with self.assertRaisesRegex(AssertionError, "Response content is not valid HTML"):
+            self.assertElementContains(
+                invalid_html,
+                "div",
+                "<div>Test</div>",
+                html=True,
+            )
+
+    def test_html_validation_with_unexpected_closing_tag(self):
+        """Invalid HTML with unexpected closing tag should fail when html=True"""
+        invalid_html = "<html><body></div></body></html>"
+
+        with self.assertRaisesRegex(AssertionError, "Response content is not valid HTML"):
+            self.assertElementContains(
+                invalid_html,
+                "body",
+                "<body></body>",
+                html=True,
+            )
+
+    def test_html_validation_disabled(self):
+        """
+        Invalid HTML should pass when html=False.
+
+        When validation is disabled, we can work with malformed HTML
+        that BeautifulSoup can still parse.
+        """
+        invalid_html = "<html><body><div>Test</span></div></body></html>"
+
+        # Should not raise - HTML validation is disabled
+        # BeautifulSoup will parse it but parse_html won't validate it
+        self.assertElementContains(
+            invalid_html,
+            "div",
+            "<div>Test</div>",
+            html=False,
+        )
+
+    def test_html_validation_with_valid_html(self):
+        """Valid HTML should pass validation"""
+        valid_html = "<html><body><div><p>Test</p></div></body></html>"
+
+        # Should not raise - HTML is valid
+        self.assertElementContains(
+            valid_html,
+            "p",
+            "<p>Test</p>",
+            html=True,
+        )
+
+    def test_html_validation_default_enabled(self):
+        """
+        HTML validation should be enabled by default.
+
+        Without explicit html=False, validation should catch structural HTML errors.
+        """
+        invalid_html = "<html><body><div>Test</span></div></body></html>"
+
+        # Without html parameter, validation should be enabled by default
+        with self.assertRaisesRegex(AssertionError, "Response content is not valid HTML"):
+            self.assertElementContains(
+                invalid_html,
+                "div",
+                "<div>Test</div>",
+            )
+
+    def test_html_validation_auto_closed_tags_allowed(self):
+        """
+        Auto-closed tags should be allowed (browser-like behavior).
+
+        Django's parse_html is forgiving like browsers - it auto-closes
+        unclosed tags. This is intentional to match assertContains behavior.
+        """
+        # Unclosed <p> tag - browser and Django will auto-close it
+        html_with_unclosed = "<html><body><div><p>Test</div></body></html>"
+
+        # Should not raise - auto-closing is allowed
+        self.assertElementContains(
+            html_with_unclosed,
+            "p",
+            "<p>Test</p>",
+            html=True,
+        )
 
 
 class SanitizeHtmlTests(TestCase):
@@ -261,13 +354,9 @@ class SanitizeHtmlTests(TestCase):
 
                 # Document whether attribute whitespace is preserved
                 if sanitized1 == sanitized2:
-                    print(
-                        f"Attribute whitespace normalized: {repr(html1)} == {repr(html2)}"
-                    )
+                    print(f"Attribute whitespace normalized: {repr(html1)} == {repr(html2)}")
                 else:
-                    print(
-                        f"Attribute whitespace preserved: {repr(html1)} != {repr(html2)}"
-                    )
+                    print(f"Attribute whitespace preserved: {repr(html1)} != {repr(html2)}")
 
     def test_boolean_attribute_normalization(self):
         """Boolean attributes should normalize consistently."""
@@ -409,9 +498,7 @@ class SanitizeHtmlTests(TestCase):
         Regression test for style attributes with inconsistent spacing.
         """
         style_one_space = '<img style="outline:none; -ms-interpolation-mode:bicubic" />'
-        style_two_spaces = (
-            '<img style="outline:none;  -ms-interpolation-mode:bicubic" />'
-        )
+        style_two_spaces = '<img style="outline:none;  -ms-interpolation-mode:bicubic" />'
 
         sanitized_one = self.sanitize_html(style_one_space)
         sanitized_two = self.sanitize_html(style_two_spaces)
@@ -622,3 +709,259 @@ class SanitizeHtmlTests(TestCase):
             sanitized_single,
             "Quote style should not affect comparison",
         )
+
+
+class AssertElementStrictValidationTests(AssertElementMixin, TestCase):
+    """Tests for strict HTML5 validation using html5lib (optional dependency)."""
+
+    def test_strict_mode_requires_html5lib(self):
+        """Test that strict mode fails gracefully without html5lib."""
+        if HAS_HTML5LIB:
+            self.skipTest("html5lib is installed, cannot test missing dependency")
+
+        with self.assertRaisesRegex(ImportError, "html='strict' requires html5lib"):
+            self.assertElementContains(
+                "<!DOCTYPE html><html><body><div>Test</div></body></html>",
+                "div",
+                "<div>Test</div>",
+                html="strict",
+            )
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_valid_html(self):
+        """Strict mode should pass valid HTML5."""
+        html = "<!DOCTYPE html><html><body><div><p>Test</p></div></body></html>"
+
+        self.assertElementContains(
+            html,
+            "p",
+            "<p>Test</p>",
+            html="strict",
+        )
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_wrong_closing_tag(self):
+        """Strict mode should catch wrong closing tags."""
+        html = "<!DOCTYPE html><html><body><div>Test</span></div></body></html>"
+
+        with self.assertRaisesRegex(AssertionError, "Response content failed strict HTML5 validation"):
+            self.assertElementContains(
+                html,
+                "div",
+                "<div>Test</div>",
+                html="strict",
+            )
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_adds_doctype(self):
+        """Strict mode should auto-add DOCTYPE if missing."""
+        # html5lib requires DOCTYPE, we add it automatically
+        html = "<html><body><div>Test</div></body></html>"
+
+        # Should not raise - DOCTYPE added automatically
+        self.assertElementContains(
+            html,
+            "div",
+            "<div>Test</div>",
+            html="strict",
+        )
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_with_complex_html(self):
+        """Strict mode should work with complex valid HTML5."""
+        html = """<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome</h1>
+        <p>This is a test page.</p>
+    </div>
+</body>
+</html>"""
+
+        self.assertElementContains(
+            html,
+            "h1",
+            "<h1>Welcome</h1>",
+            html="strict",
+        )
+
+    def test_standard_mode_still_works(self):
+        """Standard mode (html=True) should still work as before."""
+        html = "<html><body><div>Test</div></body></html>"
+
+        self.assertElementContains(
+            html,
+            "div",
+            "<div>Test</div>",
+            html=True,  # Standard mode
+        )
+
+    def test_no_validation_mode(self):
+        """html=False should disable validation completely."""
+        # Invalid HTML but BeautifulSoup can parse it
+        html = "<html><body><div>Test</span></div></body></html>"
+
+        self.assertElementContains(
+            html,
+            "div",
+            "<div>Test</div>",
+            html=False,  # No validation
+        )
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_unexpected_closing_tag(self):
+        """Strict mode should catch unexpected closing tags."""
+        html = "<!DOCTYPE html><html><body></div></body></html>"
+
+        with self.assertRaisesRegex(AssertionError, "Response content failed strict HTML5 validation"):
+            self.assertElementContains(
+                html,
+                "body",
+                "<body></body>",
+                html="strict",
+            )
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_with_bytes_content(self):
+        """Strict mode should handle byte content correctly."""
+        html_bytes = b"<!DOCTYPE html><html><body><div>Test</div></body></html>"
+
+        self.assertElementContains(
+            html_bytes,
+            "div",
+            "<div>Test</div>",
+            html="strict",
+        )
+
+    def test_standard_mode_with_bytes_content(self):
+        """Standard mode should handle byte content correctly."""
+        html_bytes = b"<html><body><div>Test</div></body></html>"
+
+        self.assertElementContains(
+            html_bytes,
+            "div",
+            "<div>Test</div>",
+            html=True,
+        )
+
+
+class AssertElementDefaultModeTests(TestCase):
+    """Tests for class-level default HTML validation mode."""
+
+    def test_default_mode_is_standard(self):
+        """Default assert_element_html_mode should be True (standard)."""
+
+        class TestClass(AssertElementMixin, TestCase):
+            pass
+
+        test_instance = TestClass()
+        self.assertEqual(test_instance.assert_element_html_mode, True)
+
+    def test_class_level_override_to_strict(self):
+        """Can override assert_element_html_mode at class level."""
+
+        class StrictTestClass(AssertElementMixin, TestCase):
+            assert_element_html_mode = "strict"
+
+        test_instance = StrictTestClass()
+        self.assertEqual(test_instance.assert_element_html_mode, "strict")
+
+    def test_class_level_override_to_false(self):
+        """Can override assert_element_html_mode to False (no validation)."""
+
+        class NoValidationTestClass(AssertElementMixin, TestCase):
+            assert_element_html_mode = False
+
+        test_instance = NoValidationTestClass()
+        self.assertEqual(test_instance.assert_element_html_mode, False)
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_class_default_used_when_html_not_specified(self):
+        """Class default should be used when html parameter not specified."""
+
+        class StrictByDefaultTest(AssertElementMixin, TestCase):
+            assert_element_html_mode = "strict"
+
+        test_instance = StrictByDefaultTest()
+        test_instance.setUp()
+
+        # Valid HTML - should use strict validation by default
+        html = "<!DOCTYPE html><html><body><div>Test</div></body></html>"
+        test_instance.assertElementContains(html, "div", "<div>Test</div>")
+
+        # Invalid HTML - should fail with strict validation
+        html_invalid = "<!DOCTYPE html><html><body><div>Test</span></div></body></html>"
+        with test_instance.assertRaisesRegex(AssertionError, "Response content failed strict HTML5 validation"):
+            test_instance.assertElementContains(html_invalid, "div", "<div>Test</div>")
+
+    def test_explicit_parameter_overrides_class_default(self):
+        """Explicit html parameter should override class default."""
+
+        class StrictByDefaultTest(AssertElementMixin, TestCase):
+            assert_element_html_mode = "strict"
+
+        test_instance = StrictByDefaultTest()
+        test_instance.setUp()
+
+        # Invalid HTML but we explicitly set html=False
+        html = "<html><body><div>Test</span></div></body></html>"
+
+        # Should not raise - explicit html=False overrides strict default
+        test_instance.assertElementContains(html, "div", "<div>Test</div>", html=False)
+
+    def test_none_uses_class_default(self):
+        """html=None should use class default."""
+
+        class CustomTest(AssertElementMixin, TestCase):
+            assert_element_html_mode = False
+
+        test_instance = CustomTest()
+        test_instance.setUp()
+
+        # Invalid HTML, but class default is False
+        html = "<html><body><div>Test</span></div></body></html>"
+
+        # Should not raise - html=None uses class default (False)
+        test_instance.assertElementContains(html, "div", "<div>Test</div>", html=None)
+
+
+@unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+class StrictAssertElementMixinTests(StrictAssertElementMixin, TestCase):
+    """Tests for StrictAssertElementMixin convenience class."""
+
+    def test_strict_mixin_has_strict_default(self):
+        """StrictAssertElementMixin should have 'strict' as default mode."""
+        self.assertEqual(self.assert_element_html_mode, "strict")
+
+    def test_strict_mixin_validates_by_default(self):
+        """StrictAssertElementMixin should use strict validation by default."""
+        html = "<!DOCTYPE html><html><body><div>Test</div></body></html>"
+
+        # Should work - valid HTML, using strict validation by default
+        self.assertElementContains(html, "div", "<div>Test</div>")
+
+    def test_strict_mixin_catches_errors_by_default(self):
+        """StrictAssertElementMixin should catch validation errors by default."""
+        html = "<!DOCTYPE html><html><body><div>Test</span></div></body></html>"
+
+        # Should fail - invalid HTML with strict validation
+        with self.assertRaisesRegex(AssertionError, "Response content failed strict HTML5 validation"):
+            self.assertElementContains(html, "div", "<div>Test</div>")
+
+    def test_strict_mixin_can_override_per_assertion(self):
+        """Can override to standard mode even with StrictAssertElementMixin."""
+        html = "<html><body><div>Test</div></body></html>"
+
+        # Should work - explicit html=True uses standard validation
+        self.assertElementContains(html, "div", "<div>Test</div>", html=True)
+
+    def test_strict_mixin_can_disable_validation(self):
+        """Can disable validation even with StrictAssertElementMixin."""
+        html = "<html><body><div>Test</span></div></body></html>"
+
+        # Should work - explicit html=False disables validation
+        self.assertElementContains(html, "div", "<div>Test</div>", html=False)

@@ -1,2 +1,6 @@
-__version__ = "0.6.1"
-from .assert_element import AssertElementMixin  # noqa
+__version__ = "0.7.0"
+from .assert_element import (  # noqa
+    HAS_HTML5LIB,
+    AssertElementMixin,
+    StrictAssertElementMixin,
+)

@@ -3,6 +3,17 @@
 History
 -------
 
+0.7.0 (2026-02-12)
+++++++++++++++++++
+
+* added HTML validation modes for catching structural errors
+* added standard HTML validation (default) using Django's parse_html
+* added optional strict HTML5 validation using html5lib (install with: pip install assert-element[strict])
+* added class-level validation mode configuration via assert_element_html_mode attribute
+* added StrictAssertElementMixin convenience class for strict-by-default validation
+* improved backward compatibility - all existing code works unchanged
+* added 21 new tests for validation modes (49 total tests)
+
 0.6.1 (2025-12-18)
 ++++++++++++++++++
 
