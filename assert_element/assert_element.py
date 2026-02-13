@@ -130,7 +130,28 @@ def sanitize_html(html_str):
 class AssertElementMixin:
     # Default HTML validation mode for all assertions in this test class
     # Can be overridden in subclasses or per-test
-    assert_element_html_mode = True
+    # If None, falls back to Django setting ASSERT_ELEMENT_HTML_MODE (defaults to True)
+    assert_element_html_mode = None
+
+    def _get_html_validation_mode(self):
+        """
+        Get the HTML validation mode from the priority chain:
+        1. Class attribute (if not None)
+        2. Django setting ASSERT_ELEMENT_HTML_MODE (if exists)
+        3. Default (True - standard validation)
+        """
+        # Check class attribute first
+        if self.assert_element_html_mode is not None:
+            return self.assert_element_html_mode
+
+        # Check Django settings
+        try:
+            from django.conf import settings
+
+            return getattr(settings, "ASSERT_ELEMENT_HTML_MODE", True)
+        except (ImportError, AttributeError):
+            # Django not available or settings not configured
+            return True
 
     def assertElementContains(  # noqa
         self,
@@ -146,11 +167,16 @@ class AssertElementMixin:
             request: Django response object or HTML string
             html_element: CSS selector for the element to find
             element_text: Expected HTML content
-            html: HTML validation mode (defaults to class attribute assert_element_html_mode):
+            html: HTML validation mode (priority order):
+                1. Explicit parameter value (if not None)
+                2. Class attribute assert_element_html_mode (if not None)
+                3. Django setting ASSERT_ELEMENT_HTML_MODE (if exists)
+                4. Default: True (standard validation)
+
+                Valid values:
                 - True: Standard validation (Django's parse_html, forgiving like browsers)
                 - 'strict': Strict HTML5 validation using html5lib (requires html5lib package)
                 - False: No validation
-                - None: Use class attribute assert_element_html_mode (default)
 
         Raises:
             ImportError: If html='strict' but html5lib is not installed
@@ -158,9 +184,9 @@ class AssertElementMixin:
         """
         content = request.content if hasattr(request, "content") else request
 
-        # Use class default if not explicitly specified
+        # Determine validation mode from priority chain
         if html is None:
-            html = self.assert_element_html_mode
+            html = self._get_html_validation_mode()
 
         # Validate HTML correctness based on mode
         if html == "strict":

@@ -328,12 +328,14 @@ API Reference
 * ``request`` - Django response object or HTML string
 * ``html_element`` - CSS selector string (e.g., ``'#id'``, ``'.class'``, ``'button.submit-btn'``)
 * ``element_text`` - Expected full element HTML string (must include element's own tags)
-* ``html`` - HTML validation mode (optional):
+* ``html`` - HTML validation mode (optional, priority order):
 
-  * ``None`` (default): Use class attribute ``assert_element_html_mode``
+  * ``None`` (default): Use class attribute → Django setting → ``True``
   * ``True``: Standard validation (Django's parse_html)
   * ``'strict'``: Strict HTML5 validation (requires html5lib)
   * ``False``: No validation
+
+  Priority: explicit parameter > class attribute > ``ASSERT_ELEMENT_HTML_MODE`` setting > default (``True``)
 
 **Raises:**
 
@@ -387,7 +389,37 @@ Skips HTML validation entirely. Useful for testing HTML fragments or intentional
 
 **Setting Project-Wide Defaults**
 
-Set validation mode for all assertions in a test class:
+There are multiple ways to set defaults, with the following priority order:
+
+1. **Per-assertion parameter** (highest priority)
+2. **Class attribute**
+3. **Django setting**
+4. **Default** (True - standard validation)
+
+**Option 1: Django Setting (Project-Wide)**
+
+Configure validation mode for your entire project in ``settings.py``:
+
+.. code-block:: python
+
+    # settings.py
+    ASSERT_ELEMENT_HTML_MODE = 'strict'  # or True, or False
+
+    # In test files - uses setting automatically
+    from assert_element import AssertElementMixin
+    from django.test import TestCase
+
+    class MyTests(AssertElementMixin, TestCase):
+        def test_something(self):
+            # Uses 'strict' from Django setting
+            self.assertElementContains(response, 'div', '<div>...</div>')
+
+            # Can still override per-assertion
+            self.assertElementContains(response, 'p', '<p>...</p>', html=True)
+
+**Option 2: Class Attribute (Test Class)**
+
+Set validation mode for all assertions in a specific test class:
 
 .. code-block:: python
 
@@ -395,13 +427,13 @@ Set validation mode for all assertions in a test class:
     from django.test import TestCase
 
     class MyTests(AssertElementMixin, TestCase):
-        assert_element_html_mode = 'strict'  # All assertions use strict
+        assert_element_html_mode = 'strict'  # Overrides Django setting
 
         def test_something(self):
-            # Uses strict validation (class default)
+            # Uses class attribute 'strict'
             self.assertElementContains(response, 'div', '<div>...</div>')
 
-            # Override for specific assertion
+            # Can still override per-assertion
             self.assertElementContains(response, 'p', '<p>...</p>', html=True)
 
 **Convenience Class for Strict Validation**
