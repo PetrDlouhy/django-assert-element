@@ -3,6 +3,17 @@
 History
 -------
 
+0.7.1 (2026-02-13)
+++++++++++++++++++
+
+* added Django settings integration for project-wide validation mode configuration
+* added ASSERT_ELEMENT_HTML_MODE Django setting support
+* implemented priority chain: parameter > class attribute > Django setting > default
+* changed default assert_element_html_mode to None (falls back to Django setting)
+* added 6 new tests for Django settings integration (55 total tests)
+* updated documentation with Django settings examples
+* maintained full backward compatibility
+
 0.7.0 (2026-02-12)
 ++++++++++++++++++
 

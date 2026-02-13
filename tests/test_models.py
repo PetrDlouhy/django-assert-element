@@ -852,14 +852,24 @@ class AssertElementStrictValidationTests(AssertElementMixin, TestCase):
 class AssertElementDefaultModeTests(TestCase):
     """Tests for class-level default HTML validation mode."""
 
-    def test_default_mode_is_standard(self):
-        """Default assert_element_html_mode should be True (standard)."""
+    def test_default_mode_is_none(self):
+        """Default assert_element_html_mode should be None (falls back to settings)."""
 
         class TestClass(AssertElementMixin, TestCase):
             pass
 
         test_instance = TestClass()
-        self.assertEqual(test_instance.assert_element_html_mode, True)
+        self.assertIsNone(test_instance.assert_element_html_mode)
+
+    def test_default_mode_resolves_to_true(self):
+        """When class attribute is None, should resolve to True (standard) by default."""
+
+        class TestClass(AssertElementMixin, TestCase):
+            pass
+
+        test_instance = TestClass()
+        # _get_html_validation_mode should return True when no setting exists
+        self.assertEqual(test_instance._get_html_validation_mode(), True)
 
     def test_class_level_override_to_strict(self):
         """Can override assert_element_html_mode at class level."""
@@ -927,6 +937,99 @@ class AssertElementDefaultModeTests(TestCase):
 
         # Should not raise - html=None uses class default (False)
         test_instance.assertElementContains(html, "div", "<div>Test</div>", html=None)
+
+
+class AssertElementDjangoSettingsTests(TestCase):
+    """Tests for Django settings integration."""
+
+    def test_django_setting_used_when_class_attribute_none(self):
+        """Django setting ASSERT_ELEMENT_HTML_MODE should be used when class attribute is None."""
+        from django.test import override_settings
+
+        class TestClass(AssertElementMixin, TestCase):
+            # Explicitly set to None to use Django setting
+            assert_element_html_mode = None
+
+        test_instance = TestClass()
+
+        # Test with setting = 'strict'
+        with override_settings(ASSERT_ELEMENT_HTML_MODE="strict"):
+            self.assertEqual(test_instance._get_html_validation_mode(), "strict")
+
+        # Test with setting = False
+        with override_settings(ASSERT_ELEMENT_HTML_MODE=False):
+            self.assertEqual(test_instance._get_html_validation_mode(), False)
+
+        # Test with setting = True
+        with override_settings(ASSERT_ELEMENT_HTML_MODE=True):
+            self.assertEqual(test_instance._get_html_validation_mode(), True)
+
+    def test_class_attribute_overrides_django_setting(self):
+        """Class attribute should take precedence over Django setting."""
+        from django.test import override_settings
+
+        class TestClass(AssertElementMixin, TestCase):
+            assert_element_html_mode = False
+
+        test_instance = TestClass()
+
+        # Even with setting = 'strict', class attribute wins
+        with override_settings(ASSERT_ELEMENT_HTML_MODE="strict"):
+            self.assertEqual(test_instance._get_html_validation_mode(), False)
+
+    def test_explicit_parameter_overrides_setting(self):
+        """Explicit html parameter should override Django setting."""
+        from django.test import override_settings
+
+        class TestClass(AssertElementMixin, TestCase):
+            assert_element_html_mode = None  # Use Django setting
+
+        test_instance = TestClass()
+        test_instance.setUp()
+
+        html = "<html><body><div>Test</div></body></html>"
+
+        # Setting says 'strict', but explicit parameter says False
+        with override_settings(ASSERT_ELEMENT_HTML_MODE="strict"):
+            # Should not raise - explicit html=False overrides setting
+            test_instance.assertElementContains(html, "div", "<div>Test</div>", html=False)
+
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_django_setting_strict_mode_validation(self):
+        """Django setting ASSERT_ELEMENT_HTML_MODE='strict' should enable strict validation."""
+        from django.test import override_settings
+
+        class TestClass(AssertElementMixin, TestCase):
+            assert_element_html_mode = None  # Use Django setting
+
+        test_instance = TestClass()
+        test_instance.setUp()
+
+        invalid_html = "<!DOCTYPE html><html><body><div>Test</span></div></body></html>"
+
+        # With strict mode via setting, should fail validation
+        with override_settings(ASSERT_ELEMENT_HTML_MODE="strict"):
+            with test_instance.assertRaisesRegex(AssertionError, "Response content failed strict HTML5 validation"):
+                test_instance.assertElementContains(invalid_html, "div", "<div>Test</div>")
+
+    def test_default_when_no_setting_exists(self):
+        """Should default to True (standard) when Django setting doesn't exist."""
+        from django.test import override_settings
+
+        class TestClass(AssertElementMixin, TestCase):
+            assert_element_html_mode = None
+
+        test_instance = TestClass()
+
+        # Simulate missing setting by deleting it
+        with override_settings():
+            from django.conf import settings
+
+            if hasattr(settings, "ASSERT_ELEMENT_HTML_MODE"):
+                delattr(settings, "ASSERT_ELEMENT_HTML_MODE")
+
+            # Should fall back to True
+            self.assertEqual(test_instance._get_html_validation_mode(), True)
 
 
 @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
