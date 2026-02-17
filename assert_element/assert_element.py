@@ -50,22 +50,22 @@ class MyHTMLFormatter(html.parser.HTMLParser):
         super().__init__(*args, **kwargs)
         self.result = []
 
-    def handle_starttag(self, tag, attrs):
-        self.result.append(f"<{tag}")
+    def _format_attrs(self, attrs):
+        """Format attributes for tag output."""
         for attr in attrs:
             if attr[1] in (None, True):
                 self.result.append(f" {attr[0]}")
             else:
                 self.result.append(f' {attr[0]}="{attr[1]}"')
+
+    def handle_starttag(self, tag, attrs):
+        self.result.append(f"<{tag}")
+        self._format_attrs(attrs)
         self.result.append(">")
 
     def handle_startendtag(self, tag, attrs):
         self.result.append(f"<{tag}")
-        for attr in attrs:
-            if attr[1] in (None, True):
-                self.result.append(f" {attr[0]}")
-            else:
-                self.result.append(f' {attr[0]}="{attr[1]}"')
+        self._format_attrs(attrs)
         self.result.append("/>")
 
     def handle_endtag(self, tag):
@@ -132,6 +132,10 @@ class AssertElementMixin:
     # Can be overridden in subclasses or per-test
     # If None, falls back to Django setting ASSERT_ELEMENT_HTML_MODE (defaults to True)
     assert_element_html_mode = None
+
+    def _content_to_str(self, content):
+        """Convert content to string, handling bytes."""
+        return content.decode() if isinstance(content, bytes) else content
 
     def _get_html_validation_mode(self):
         """
@@ -217,7 +221,7 @@ class AssertElementMixin:
 
     def _validate_html_standard(self, content):
         """Standard HTML validation using Django's parse_html (browser-like)."""
-        content_str = content.decode() if isinstance(content, bytes) else content
+        content_str = self._content_to_str(content)
         try:
             parse_html(content_str)
         except HTMLParseError as e:
@@ -236,18 +240,50 @@ class AssertElementMixin:
                 "Or use html=True for standard validation."
             )
 
-        content_str = content.decode() if isinstance(content, bytes) else content
+        content_str = self._content_to_str(content)
         content_stripped = content_str.strip()
 
         # Ensure DOCTYPE for html5lib (only add if not present)
         if not content_stripped.startswith("<!DOCTYPE") and not content_stripped.upper().startswith("<!DOCTYPE"):
             content_str = "<!DOCTYPE html>" + content_str
 
-        parser = html5lib.HTMLParser(strict=True)
-        try:
-            parser.parse(content_str)
-        except HTML5ParseError as e:
-            self.fail(f"Response content failed strict HTML5 validation: {e}")
+        # Parse with strict=False to collect all errors with position info
+        parser = html5lib.HTMLParser(strict=False)
+        parser.parse(content_str)
+
+        if parser.errors:
+            from html5lib.constants import E
+
+            # Format errors with context
+            error_messages = []
+            lines = content_str.split("\n")
+
+            for position, errorcode, datavars in parser.errors:
+                line_num, col_num = position
+                error_msg = E.get(errorcode, errorcode) % datavars if datavars else E.get(errorcode, errorcode)
+
+                # Build context snippet (3 lines before and after)
+                context_start = max(0, line_num - 4)  # line_num is 1-indexed
+                context_end = min(len(lines), line_num + 3)
+                context_lines = []
+
+                for i in range(context_start, context_end):
+                    line_marker = ">>>" if i == line_num - 1 else "   "
+                    context_lines.append(f"{line_marker} {i + 1:4d} | {lines[i]}")
+
+                    # Add column pointer for the error line
+                    if i == line_num - 1 and col_num is not None:
+                        pointer = " " * (col_num + 11) + "^"  # 11 = len(">>> 9999 | ")
+                        context_lines.append(pointer)
+
+                error_messages.append(
+                    f"\nHTML5 Validation Error at line {line_num}, column {col_num}:\n"
+                    f"  {error_msg}\n\n"
+                    f"Context:\n" + "\n".join(context_lines)
+                )
+
+            full_message = "\n".join(error_messages)
+            self.fail(f"Response content failed strict HTML5 validation:\n{full_message}")
 
 
 class StrictAssertElementMixin(AssertElementMixin):

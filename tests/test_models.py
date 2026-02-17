@@ -837,6 +837,38 @@ class AssertElementStrictValidationTests(AssertElementMixin, TestCase):
             html="strict",
         )
 
+    @unittest.skipUnless(HAS_HTML5LIB, "html5lib not installed")
+    def test_strict_mode_error_message_format(self):
+        """Strict mode error messages should include line number, context, and pointer."""
+        html = """<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+    <div id="test">
+        <p>Text</p>
+    </div class="invalid">
+</body>
+</html>"""
+
+        error_raised = False
+        error_msg = ""
+        try:
+            self.assertElementContains(html, "p", "<p>Text</p>", html="strict")
+        except AssertionError as e:
+            error_raised = True
+            error_msg = str(e)
+
+        # Verify error was raised
+        self.assertTrue(error_raised, "Should have raised AssertionError for invalid HTML")
+
+        # Verify error message contains expected components
+        self.assertIn("HTML5 Validation Error at line", error_msg)
+        self.assertIn("End tag contains unexpected attributes", error_msg)
+        self.assertIn("Context:", error_msg)
+        self.assertIn(">>>", error_msg)  # Line marker
+        self.assertIn("^", error_msg)  # Column pointer
+        self.assertIn('</div class="invalid">', error_msg)  # The problematic line
+
     def test_standard_mode_with_bytes_content(self):
         """Standard mode should handle byte content correctly."""
         html_bytes = b"<html><body><div>Test</div></body></html>"
