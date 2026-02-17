@@ -3,6 +3,15 @@
 History
 -------
 
+0.7.2 (2026-02-17)
+++++++++++++++++++
+
+* improved strict HTML5 validation error messages with clear context and location
+* error messages now show exact line and column numbers where validation fails
+* added visual context (3 lines before/after) with pointer to exact error location
+* multiple validation errors now reported individually with their own context
+* error messages are now actionable instead of showing cryptic stack traces
+
 0.7.1 (2026-02-13)
 ++++++++++++++++++
 

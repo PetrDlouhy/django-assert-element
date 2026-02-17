@@ -20,7 +20,7 @@ SECRET_KEY = "da3_88ph4@26ol_!06kbpeuy-nl+ex%zuxbsnzqhd=42=jp-pf"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS: List[str] = []
+ALLOWED_HOSTS: List[str] = ["testserver"]
 
 # Application definition
 
